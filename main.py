@@ -87,10 +87,73 @@ plt.tight_layout()
 plt.show()'''
 
 houses_df = houses_clean[['OverallQual', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
-'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd']]
+'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
 
 print(houses_df.head().dropna())
 print(houses_df.info())
 print(houses_df.describe().transpose())
 
 houses_df.fillna(0)
+
+#normalizar
+df_norm  = (houses_df-houses_df.min())/(houses_df.max()-houses_df.min())
+#print(movies_clean_norm.fillna(0))
+houses_df_final = df_norm.fillna(0)
+
+print(houses_df_final.describe().transpose())
+
+#Analisis de tendencia a agrupamiento
+
+#Metodo Hopkings
+
+random.seed(200)
+print(pyclustertend.hopkins(houses_df_final, len(houses_df_final)))
+
+#Grafico VAT e iVAT
+x = houses_df_final.sample(frac=0.1)
+pyclustertend.vat(x)
+plt.show()
+pyclustertend.ivat(x)
+plt.show()
+
+# Numero adecuado de grupos
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, max_iter=300)
+    kmeans.fit(houses_df_final)
+    wcss.append(kmeans.inertia_)
+plt.plot(range(1, 11), wcss)
+plt.title('Grafico de codo')
+plt.xlabel('No. Clusters')
+plt.ylabel('Puntaje')
+plt.show()
+
+
+#Kmeans
+clusters=  KMeans(n_clusters=3, max_iter=300) #Creacion del modelo
+clusters.fit(houses_df_final) #Aplicacion del modelo de cluster
+
+houses_df_final['cluster'] = clusters.labels_ #Asignacion de los clusters
+print(houses_df_final.head())
+
+pca = PCA(2)
+pca_movies = pca.fit_transform(houses_df_final)
+pca_movies_df = pd.DataFrame(data = pca_movies, columns = ['PC1', 'PC2'])
+pca_clust_movies = pd.concat([pca_movies_df, houses_df_final[['cluster']]], axis = 1)
+
+fig = plt.figure(figsize=(8,8))
+ax = fig.add_subplot(1,1,1)
+ax.set_xlabel('PC1', fontsize = 15)
+ax.set_ylabel('PC2', fontsize = 15)
+ax.set_title('Clusters de casas', fontsize = 20)
+
+color_theme = np.array(['red', 'green', 'blue', 'yellow','black'])
+ax.scatter(x = pca_clust_movies.PC1, y = pca_clust_movies.PC2, s = 50, c = color_theme[pca_clust_movies.cluster])
+
+plt.show()
+print(pca_clust_movies)
+
+houses_df['Cluster'] = houses_df_final['cluster']
+print((houses_df[houses_df['Cluster']==0]).describe().transpose())
+print((houses_df[houses_df['Cluster']==1]).describe().transpose())
+print((houses_df[houses_df['Cluster']==2]).describe().transpose())
