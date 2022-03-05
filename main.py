@@ -7,6 +7,7 @@
 #Julio Herrera
 
 
+from cgi import test
 from math import ceil
 import pandas as pd
 import numpy as np
@@ -14,18 +15,21 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import seaborn as sns
 from collections import Counter
-from sklearn import preprocessing
+from sklearn import preprocessing, tree
 from sklearn import datasets
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import silhouette_samples
 from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
 import pyclustertend
 import random
+import graphviz
 import sklearn.mixture as mixture
 import scipy.cluster.hierarchy as sch
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
 import matplotlib.cm as cm
+from sklearn.model_selection import train_test_split
 
 houses = pd.read_csv('train.csv', encoding='latin1', engine='python')
 
@@ -88,11 +92,11 @@ plt.show()'''
 
 houses_df = houses_clean[['OverallQual', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
 'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
-
+'''
 print(houses_df.head().dropna())
 print(houses_df.info())
 print(houses_df.describe().transpose())
-
+'''
 houses_df.fillna(0)
 
 #normalizar
@@ -105,7 +109,7 @@ print(houses_df_final.describe().transpose())
 #Analisis de tendencia a agrupamiento
 
 #Metodo Hopkings
-
+'''
 random.seed(200)
 print(pyclustertend.hopkins(houses_df_final, len(houses_df_final)))
 
@@ -127,8 +131,7 @@ plt.title('Grafico de codo')
 plt.xlabel('No. Clusters')
 plt.ylabel('Puntaje')
 plt.show()
-
-
+'''
 #Kmeans
 clusters=  KMeans(n_clusters=3, max_iter=300) #Creacion del modelo
 clusters.fit(houses_df_final) #Aplicacion del modelo de cluster
@@ -157,3 +160,39 @@ houses_df['Cluster'] = houses_df_final['cluster']
 print((houses_df[houses_df['Cluster']==0]).describe().transpose())
 print((houses_df[houses_df['Cluster']==1]).describe().transpose())
 print((houses_df[houses_df['Cluster']==2]).describe().transpose())
+
+# Creacion de la respuesta (clasificacion de casas en: Economicas, Intermedias o Caras)
+minSalesPrice = houses_df['SalePrice'].min()
+maxSalesPrice = houses_df['SalePrice'].max()
+terceraParte = (maxSalesPrice - minSalesPrice) / 3
+houses_df['Clasificacion'] = houses_df['SalePrice']
+houses_df['Clasificacion'] = houses_df['Clasificacion'].apply(lambda x: 'Economicas' if x < minSalesPrice + terceraParte else 'Intermedias' if x < minSalesPrice + 2 * terceraParte else 'Caras')
+
+# Division de datos, 70% de entrenamiento y 30% de prueba
+y = houses_df.pop('Clasificacion')
+x = houses_df
+x.pop('MasVnrArea')
+x.pop('GarageYrBlt')
+x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=0.7, test_size=0.3)
+
+# Modelo de arbol de decision
+Dt_model = tree.DecisionTreeClassifier(max_depth=15, random_state=42)
+
+x_train.fillna(0)
+y_train.fillna(0)
+print(x_train.describe().transpose())
+
+Dt_model.fit(x_train, y_train)
+'''
+dot_data = tree.export_graphviz(Dt_model, out_file=None,
+                                feature_names=x_train.columns,
+                                class_names=['Economicas', 'Intermedias', 'Caras'],
+                                filled=True, rounded=True,
+                                special_characters=True, leaves_parallel=False)
+graph = graphviz.Source(dot_data)
+plt.show()
+'''
+
+tree.plot_tree(Dt_model,feature_names=houses_df.columns,
+               class_names=['Economicas', 'Intermedias', 'Caras'],filled=True )
+plt.show()
