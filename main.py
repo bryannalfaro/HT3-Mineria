@@ -21,7 +21,7 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import silhouette_samples
 from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 import pyclustertend
 import random
 import graphviz
@@ -49,7 +49,7 @@ print(houses.select_dtypes(exclude=['object']).info())'''
 '''#Casas que ofrecen todas las utilidades
 print(houses['Utilities'].value_counts())
 
-plt.bar(houses['Utilities'].value_counts().sort_index().dropna().index,houses['Utilities'].value_counts().sort_index().values,color='red')
+plt.bar(houses['Utilities'].value_counts().sort_index().dropna().index, houses['Utilities'].value_counts().sort_index().values, color='red')
 plt.title('Grafico de barras para utilidades')
 plt.xlabel('Utilidad')
 plt.xticks(rotation=90)
@@ -60,7 +60,7 @@ plt.show()
 #Calidad de casas predominante
 print(houses['OverallCond'].value_counts())
 
-plt.bar(houses['OverallCond'].value_counts().sort_index().dropna().index,houses['OverallCond'].value_counts().sort_index().values,color='red')
+plt.bar(houses['OverallCond'].value_counts().sort_index().dropna().index, houses['OverallCond'].value_counts().sort_index().values, color='red')
 plt.title('Grafico de barras para condicion de las casas')
 plt.xlabel('Condicion')
 plt.ylabel('Cantidad de casas')
@@ -78,19 +78,21 @@ print(houses.sort_values(by='SalePrice', ascending=True)[['GarageCars','SalePric
 #Condicion de garage y calidad de la cocina de las 5 casas mas caras
 print(houses.sort_values(by='SalePrice', ascending=False)[['GarageCond','KitchenQual','SalePrice']].head(5))'''
 
-
 houses_clean = houses.select_dtypes(exclude='object').drop('Id', axis=1)
+
 '''#preprocesamiento
 corr_data = houses_clean.iloc[:,:]
 mat_correlation=corr_data.corr() # se calcula la matriz , usando el coeficiente de correlacion de Pearson
 plt.figure(figsize=(16,10))
+
 #Realizando una mejor visualizacion de la matriz
 sns.heatmap(mat_correlation,annot=True,cmap='BrBG')
 plt.title('Matriz de correlaciones  para la base Houses')
 plt.tight_layout()
 plt.show()'''
 
-houses_df = houses_clean[['OverallQual', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
+# Seleccion de variables
+houses_df = houses_clean[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
 'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
 '''
 print(houses_df.head().dropna())
@@ -166,33 +168,44 @@ minSalesPrice = houses_df['SalePrice'].min()
 maxSalesPrice = houses_df['SalePrice'].max()
 terceraParte = (maxSalesPrice - minSalesPrice) / 3
 houses_df['Clasificacion'] = houses_df['SalePrice']
+# Clasificar casas a partir del precio "SalePrice"
 houses_df['Clasificacion'] = houses_df['Clasificacion'].apply(lambda x: 'Economicas' if x < minSalesPrice + terceraParte else 'Intermedias' if x < minSalesPrice + 2 * terceraParte else 'Caras')
-
-# Division de datos, 70% de entrenamiento y 30% de prueba
+# Clasificar casas a partir del precio y su condición general "OverallCond"
+houses_df['Clasificacion'] = houses_df.apply(lambda row: 'Caras' if ((row['Clasificacion'] == 'Intermedias' and row['OverallCond'] < 4 ) or (row['Clasificacion'] == 'Economicas' and row['OverallCond'] < 2))
+                                                    else 'Intermedias' if (row['Clasificacion'] == 'Economicas' and (1 < row['OverallCond'] < 4))
+                                                    else 'Economicas' if (row['Clasificacion'] == 'Intermedias' and row['OverallCond'] > 7)
+                                                    else row['Clasificacion'], axis=1)
+# Convertir Clasaficacion a categorica
+houses_df['Clasificacion'] = houses_df.apply(lambda row: 1 if row['Clasificacion'] == 'Economicas' else 2 if row['Clasificacion'] == 'Intermedias' else 3, axis=1)
+'''
+# Ver distribucion del precio, condicion general y clasificacion
+houses_df['SalePrice'].hist()
+plt.title('Histograma de precios')
+plt.show()
+houses_df['OverallCond'].hist()
+plt.title('Histograma de condicion general')
+plt.show()
+houses_df['Clasificacion'].hist()
+plt.title('Histograma de clasificacion')
+plt.show()
+'''
+# Division de datos, 70% de entrenamiento y 30% de prueba, manteniendo distribucion de clasificacion
 y = houses_df.pop('Clasificacion')
 x = houses_df
 x.pop('MasVnrArea')
 x.pop('GarageYrBlt')
-x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=0.7, test_size=0.3)
+dividir = StratifiedShuffleSplit(n_splits=10, train_size=0.7, test_size=0.3, random_state=416)
+for train_index, test_index in dividir.split(x, y):
+    x_train, x_test = x.iloc[train_index], x.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
 # Modelo de arbol de decision
-Dt_model = tree.DecisionTreeClassifier(max_depth=15, random_state=42)
+Dt_model = tree.DecisionTreeClassifier(random_state=0)
 
 x_train.fillna(0)
 y_train.fillna(0)
-print(x_train.describe().transpose())
 
 Dt_model.fit(x_train, y_train)
-'''
-dot_data = tree.export_graphviz(Dt_model, out_file=None,
-                                feature_names=x_train.columns,
-                                class_names=['Economicas', 'Intermedias', 'Caras'],
-                                filled=True, rounded=True,
-                                special_characters=True, leaves_parallel=False)
-graph = graphviz.Source(dot_data)
-plt.show()
-'''
 
-tree.plot_tree(Dt_model,feature_names=houses_df.columns,
-               class_names=['Economicas', 'Intermedias', 'Caras'],filled=True )
+tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
 plt.show()
