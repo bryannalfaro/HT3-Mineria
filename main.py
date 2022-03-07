@@ -17,9 +17,11 @@ import seaborn as sns
 from collections import Counter
 from sklearn import preprocessing, tree
 from sklearn import datasets
+from sklearn import metrics
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import classification_report, silhouette_score
 from sklearn.metrics import silhouette_samples
+from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 import pyclustertend
@@ -194,6 +196,7 @@ y = houses_df.pop('Clasificacion')
 x = houses_df
 x.pop('MasVnrArea')
 x.pop('GarageYrBlt')
+x.pop('Cluster') # Se elimina para que al analizar el set de pruebas no se tenga en cuenta
 dividir = StratifiedShuffleSplit(n_splits=10, train_size=0.7, test_size=0.3, random_state=416)
 for train_index, test_index in dividir.split(x, y):
     x_train, x_test = x.iloc[train_index], x.iloc[test_index]
@@ -209,3 +212,47 @@ Dt_model.fit(x_train, y_train)
 
 tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
 plt.show()
+
+# Cargando el set de entrenamiento
+houses_train = pd.read_csv('train.csv', encoding='latin1', engine='python')
+houses_train = houses_train.select_dtypes(exclude='object').drop('Id', axis=1)
+houses_train = houses_train[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
+'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
+houses_train.fillna(0)
+
+# Calculando el y_train con el set de entrenamiento real
+minSalesPrice = houses_train['SalePrice'].min()
+maxSalesPrice = houses_train['SalePrice'].max()
+terceraParte = (maxSalesPrice - minSalesPrice) / 3
+houses_train['Clasificacion'] = houses_train['SalePrice']
+# Clasificar casas a partir del precio "SalePrice"
+houses_train['Clasificacion'] = houses_train['Clasificacion'].apply(lambda x: 'Economicas' if x < minSalesPrice + terceraParte else 'Intermedias' if x < minSalesPrice + 2 * terceraParte else 'Caras')
+# Clasificar casas a partir del precio y su condición general "OverallCond"
+houses_train['Clasificacion'] = houses_train.apply(lambda row: 'Caras' if ((row['Clasificacion'] == 'Intermedias' and row['OverallCond'] < 4 ) or (row['Clasificacion'] == 'Economicas' and row['OverallCond'] < 2))
+                                                    else 'Intermedias' if (row['Clasificacion'] == 'Economicas' and (1 < row['OverallCond'] < 4))
+                                                    else 'Economicas' if (row['Clasificacion'] == 'Intermedias' and row['OverallCond'] > 7)
+                                                    else row['Clasificacion'], axis=1)
+# Convertir Clasaficacion a categorica
+houses_train['Clasificacion'] = houses_train.apply(lambda row: 1 if row['Clasificacion'] == 'Economicas' else 2 if row['Clasificacion'] == 'Intermedias' else 3, axis=1)
+
+y_test = houses_train.pop('Clasificacion')
+houses_train.pop('MasVnrArea')
+houses_train.pop('GarageYrBlt')
+
+# 9. Calcular eficiencia del algoritmo usando matriz de confusion
+y_pred = Dt_model.predict(houses_train)
+cm = confusion_matrix(y_test, y_pred)
+print('\nClassification Report:')
+print(classification_report(y_test, y_pred))
+
+plt.figure(figsize=(10, 7))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Económicas', 'Intermedias', 'Caras'], yticklabels=['Económicas', 'Intermedias', 'Caras'])
+plt.title('Matriz de Confusion')
+plt.ylabel('Clasificación real')
+plt.xlabel('Clasificación predicha')
+plt.show()
+
+print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+print("Precision:", metrics.precision_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
+print("Recall:", metrics.recall_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
+print("F1:", metrics.f1_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
