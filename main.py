@@ -213,34 +213,70 @@ Dt_model.fit(x_train, y_train)
 tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
 plt.show()
 
-# Cargando el set de entrenamiento
-houses_train = pd.read_csv('train.csv', encoding='latin1', engine='python')
-houses_train = houses_train.select_dtypes(exclude='object').drop('Id', axis=1)
-houses_train = houses_train[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
+# Modelo de arbol de regresión
+# y = houses_df.pop('SalePrice')
+# x = houses_df
+
+# x.pop('MasVnrArea')
+# x.pop('GarageYrBlt')
+# x.pop('Cluster')
+# x.pop('Clasificacion') 
+
+# random.seed(5236)
+
+# x_train, x_test,y_train, y_test = train_test_split(x, y,test_size=0.3,train_size=0.7, random_state=0)
+
+# Dt_model = tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=20)
+
+# x_train.fillna(0)
+# y_train.fillna(0)
+
+# Dt_model.fit(x_train, y_train)
+
+# y_pred = Dt_model.predict(X = x_test)
+
+# rmse = metrics.mean_squared_error(
+#         y_true  = y_test,
+#         y_pred  = y_pred,
+#         squared = False
+#        )
+# print("-----------------------------------")
+# print(f"El error (rmse) de test es: {rmse}")
+# print("-----------------------------------")
+
+
+# plt.figure(figsize=(23, 10))
+# tree.plot_tree(Dt_model, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
+# plt.show()
+
+# Cargando el set de entrenamiento para problema 9
+houses_test = pd.read_csv('train.csv', encoding='latin1', engine='python')
+houses_test = houses_test.select_dtypes(exclude='object').drop('Id', axis=1)
+houses_test = houses_test[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
 'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
-houses_train.fillna(0)
+houses_test.fillna(0)
 
 # Calculando el y_train con el set de entrenamiento real
-minSalesPrice = houses_train['SalePrice'].min()
-maxSalesPrice = houses_train['SalePrice'].max()
+minSalesPrice = houses_test['SalePrice'].min()
+maxSalesPrice = houses_test['SalePrice'].max()
 terceraParte = (maxSalesPrice - minSalesPrice) / 3
-houses_train['Clasificacion'] = houses_train['SalePrice']
+houses_test['Clasificacion'] = houses_test['SalePrice']
 # Clasificar casas a partir del precio "SalePrice"
-houses_train['Clasificacion'] = houses_train['Clasificacion'].apply(lambda x: 'Economicas' if x < minSalesPrice + terceraParte else 'Intermedias' if x < minSalesPrice + 2 * terceraParte else 'Caras')
+houses_test['Clasificacion'] = houses_test['Clasificacion'].apply(lambda x: 'Economicas' if x < minSalesPrice + terceraParte else 'Intermedias' if x < minSalesPrice + 2 * terceraParte else 'Caras')
 # Clasificar casas a partir del precio y su condición general "OverallCond"
-houses_train['Clasificacion'] = houses_train.apply(lambda row: 'Caras' if ((row['Clasificacion'] == 'Intermedias' and row['OverallCond'] < 4 ) or (row['Clasificacion'] == 'Economicas' and row['OverallCond'] < 2))
+houses_test['Clasificacion'] = houses_test.apply(lambda row: 'Caras' if ((row['Clasificacion'] == 'Intermedias' and row['OverallCond'] < 4 ) or (row['Clasificacion'] == 'Economicas' and row['OverallCond'] < 2))
                                                     else 'Intermedias' if (row['Clasificacion'] == 'Economicas' and (1 < row['OverallCond'] < 4))
                                                     else 'Economicas' if (row['Clasificacion'] == 'Intermedias' and row['OverallCond'] > 7)
                                                     else row['Clasificacion'], axis=1)
 # Convertir Clasaficacion a categorica
-houses_train['Clasificacion'] = houses_train.apply(lambda row: 1 if row['Clasificacion'] == 'Economicas' else 2 if row['Clasificacion'] == 'Intermedias' else 3, axis=1)
+houses_test['Clasificacion'] = houses_test.apply(lambda row: 1 if row['Clasificacion'] == 'Economicas' else 2 if row['Clasificacion'] == 'Intermedias' else 3, axis=1)
 
-y_test = houses_train.pop('Clasificacion')
-houses_train.pop('MasVnrArea')
-houses_train.pop('GarageYrBlt')
+y_test = houses_test.pop('Clasificacion')
+houses_test.pop('MasVnrArea')
+houses_test.pop('GarageYrBlt')
 
 # 9. Calcular eficiencia del algoritmo usando matriz de confusion
-y_pred = Dt_model.predict(houses_train)
+y_pred = Dt_model.predict(houses_test)
 cm = confusion_matrix(y_test, y_pred)
 print('\nClassification Report:')
 print(classification_report(y_test, y_pred))
