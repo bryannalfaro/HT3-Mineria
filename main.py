@@ -24,6 +24,7 @@ from sklearn.metrics import silhouette_samples
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
+from copy import copy
 import pyclustertend
 import random
 import graphviz
@@ -144,9 +145,9 @@ houses_df_final['cluster'] = clusters.labels_ #Asignacion de los clusters
 print(houses_df_final.head())
 
 pca = PCA(2)
-pca_movies = pca.fit_transform(houses_df_final)
-pca_movies_df = pd.DataFrame(data = pca_movies, columns = ['PC1', 'PC2'])
-pca_clust_movies = pd.concat([pca_movies_df, houses_df_final[['cluster']]], axis = 1)
+pca_houses = pca.fit_transform(houses_df_final)
+pca_houses_df = pd.DataFrame(data = pca_houses, columns = ['PC1', 'PC2'])
+pca_clust_houses = pd.concat([pca_houses_df, houses_df_final[['cluster']]], axis = 1)
 
 fig = plt.figure(figsize=(8,8))
 ax = fig.add_subplot(1,1,1)
@@ -155,10 +156,10 @@ ax.set_ylabel('PC2', fontsize = 15)
 ax.set_title('Clusters de casas', fontsize = 20)
 
 color_theme = np.array(['red', 'green', 'blue', 'yellow','black'])
-ax.scatter(x = pca_clust_movies.PC1, y = pca_clust_movies.PC2, s = 50, c = color_theme[pca_clust_movies.cluster])
+ax.scatter(x = pca_clust_houses.PC1, y = pca_clust_houses.PC2, s = 50, c = color_theme[pca_clust_houses.cluster])
 
 plt.show()
-print(pca_clust_movies)
+print(pca_clust_houses)
 
 houses_df['Cluster'] = houses_df_final['cluster']
 print((houses_df[houses_df['Cluster']==0]).describe().transpose())
@@ -193,7 +194,7 @@ plt.show()
 '''
 # Division de datos, 70% de entrenamiento y 30% de prueba, manteniendo distribucion de clasificacion
 y = houses_df.pop('Clasificacion')
-x = houses_df
+x = copy(houses_df)
 x.pop('MasVnrArea')
 x.pop('GarageYrBlt')
 x.pop('Cluster') # Se elimina para que al analizar el set de pruebas no se tenga en cuenta
@@ -218,12 +219,11 @@ plt.show()
 
 # Modelo de arbol de regresión
 y_reg = houses_df.pop('SalePrice')
-x_reg = houses_df
+x_reg = copy(houses_df)
 
 x_reg.pop('MasVnrArea')
 x_reg.pop('GarageYrBlt')
 x_reg.pop('Cluster')
-x_reg.pop('Clasificacion') 
 
 random.seed(5236)
 
@@ -241,6 +241,37 @@ tree.plot_tree(Dt_model, feature_names=houses_df.columns, fontsize=7, filled=Tru
 plt.show()
 
 # Eficiencia del algoritmo de arbol de clasificacion
+y_pred = Dt_model.predict(x_test)
+cm = confusion_matrix(y_test, y_pred)
+print('\nClassification Report:')
+print(classification_report(y_test, y_pred))
+
+print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+print("Precision:", metrics.precision_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
+print("Recall:", metrics.recall_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
+print("F1:", metrics.f1_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
+
+# Matriz de confusion para el arbol de classificacion
+
+plt.figure(figsize=(10, 7))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Económicas', 'Intermedias', 'Caras'], yticklabels=['Económicas', 'Intermedias', 'Caras'])
+plt.title('Matriz de Confusion')
+plt.ylabel('Clasificación real')
+plt.xlabel('Clasificación predicha')
+plt.show()
+
+# Eficiencia del algoritmo de arbol de regresion
+
+# Cargando el set de testeo para predecir SalePrice
+houses_test = pd.read_csv('test.csv', encoding='latin1', engine='python')
+houses_test = houses_test.select_dtypes(exclude='object').drop('Id', axis=1)
+houses_test = houses_test[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
+'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd']]
+houses_test.fillna(0)
+
+houses_test.pop('MasVnrArea')
+houses_test.pop('GarageYrBlt')
+
 y_pred_reg = Dt_model_reg.predict(X = x_test_reg)
 
 rmse = metrics.mean_squared_error(
@@ -262,47 +293,3 @@ plt.title('Matriz de Confusion')
 plt.ylabel('Clasificación real')
 plt.xlabel('Clasificación predicha')
 plt.show()
-
-# Cargando el set de entrenamiento para problema 9
-houses_test = pd.read_csv('train.csv', encoding='latin1', engine='python')
-houses_test = houses_test.select_dtypes(exclude='object').drop('Id', axis=1)
-houses_test = houses_test[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
-'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
-houses_test.fillna(0)
-
-# Calculando el y_train con el set de entrenamiento real
-minSalesPrice = houses_test['SalePrice'].min()
-maxSalesPrice = houses_test['SalePrice'].max()
-terceraParte = (maxSalesPrice - minSalesPrice) / 3
-houses_test['Clasificacion'] = houses_test['SalePrice']
-# Clasificar casas a partir del precio "SalePrice"
-houses_test['Clasificacion'] = houses_test['Clasificacion'].apply(lambda x: 'Economicas' if x < minSalesPrice + terceraParte else 'Intermedias' if x < minSalesPrice + 2 * terceraParte else 'Caras')
-# Clasificar casas a partir del precio y su condición general "OverallCond"
-houses_test['Clasificacion'] = houses_test.apply(lambda row: 'Caras' if ((row['Clasificacion'] == 'Intermedias' and row['OverallCond'] < 4 ) or (row['Clasificacion'] == 'Economicas' and row['OverallCond'] < 2))
-                                                    else 'Intermedias' if (row['Clasificacion'] == 'Economicas' and (1 < row['OverallCond'] < 4))
-                                                    else 'Economicas' if (row['Clasificacion'] == 'Intermedias' and row['OverallCond'] > 7)
-                                                    else row['Clasificacion'], axis=1)
-# Convertir Clasaficacion a categorica
-houses_test['Clasificacion'] = houses_test.apply(lambda row: 1 if row['Clasificacion'] == 'Economicas' else 2 if row['Clasificacion'] == 'Intermedias' else 3, axis=1)
-
-y_test = houses_test.pop('Clasificacion')
-houses_test.pop('MasVnrArea')
-houses_test.pop('GarageYrBlt')
-
-# 9. Calcular eficiencia del algoritmo usando matriz de confusion
-y_pred = Dt_model.predict(houses_test)
-cm = confusion_matrix(y_test, y_pred)
-print('\nClassification Report:')
-print(classification_report(y_test, y_pred))
-
-plt.figure(figsize=(10, 7))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Económicas', 'Intermedias', 'Caras'], yticklabels=['Económicas', 'Intermedias', 'Caras'])
-plt.title('Matriz de Confusion')
-plt.ylabel('Clasificación real')
-plt.xlabel('Clasificación predicha')
-plt.show()
-
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Precision:", metrics.precision_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
-print("Recall:", metrics.recall_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
-print("F1:", metrics.f1_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
