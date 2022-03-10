@@ -262,16 +262,6 @@ plt.show()
 
 # Eficiencia del algoritmo de arbol de regresion
 
-# Cargando el set de testeo para predecir SalePrice
-houses_test = pd.read_csv('test.csv', encoding='latin1', engine='python')
-houses_test = houses_test.select_dtypes(exclude='object').drop('Id', axis=1)
-houses_test = houses_test[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
-'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd']]
-houses_test.fillna(0)
-
-houses_test.pop('MasVnrArea')
-houses_test.pop('GarageYrBlt')
-
 y_pred_reg = Dt_model_reg.predict(X = x_test_reg)
 
 rmse = metrics.mean_squared_error(
