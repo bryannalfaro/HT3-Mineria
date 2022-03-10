@@ -6,7 +6,6 @@
 #Diego de Jesus
 #Julio Herrera
 
-
 from cgi import test
 from math import ceil
 import pandas as pd
@@ -37,7 +36,7 @@ from sklearn.model_selection import train_test_split
 
 houses = pd.read_csv('train.csv', encoding='latin1', engine='python')
 
-'''
+
 #Conocimiento de datos
 print(houses.head())
 
@@ -47,10 +46,9 @@ print(houses.shape)
 #Medidas estadisticas.
 print(houses.describe().transpose())
 
-print(houses.select_dtypes(exclude=['object']).info())'''
+print(houses.select_dtypes(exclude=['object']).info())
 
-
-'''#Casas que ofrecen todas las utilidades
+#Casas que ofrecen todas las utilidades
 print(houses['Utilities'].value_counts())
 
 plt.bar(houses['Utilities'].value_counts().sort_index().dropna().index, houses['Utilities'].value_counts().sort_index().values, color='red')
@@ -80,11 +78,11 @@ print(houses.sort_values(by='SalePrice', ascending=False)[['GarageCars','SalePri
 print(houses.sort_values(by='SalePrice', ascending=True)[['GarageCars','SalePrice']].head(5))
 
 #Condicion de garage y calidad de la cocina de las 5 casas mas caras
-print(houses.sort_values(by='SalePrice', ascending=False)[['GarageCond','KitchenQual','SalePrice']].head(5))'''
+print(houses.sort_values(by='SalePrice', ascending=False)[['GarageCond','KitchenQual','SalePrice']].head(5))
 
 houses_clean = houses.select_dtypes(exclude='object').drop('Id', axis=1)
 
-'''#preprocesamiento
+#preprocesamiento
 corr_data = houses_clean.iloc[:,:]
 mat_correlation=corr_data.corr() # se calcula la matriz , usando el coeficiente de correlacion de Pearson
 plt.figure(figsize=(16,10))
@@ -93,16 +91,16 @@ plt.figure(figsize=(16,10))
 sns.heatmap(mat_correlation,annot=True,cmap='BrBG')
 plt.title('Matriz de correlaciones  para la base Houses')
 plt.tight_layout()
-plt.show()'''
+plt.show()
 
 # Seleccion de variables
 houses_df = houses_clean[['OverallQual', 'OverallCond', 'GrLivArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'TotalBsmtSF', '1stFlrSF', 'FullBath', 'Fireplaces',
 'GarageCars', 'GarageArea', 'GarageYrBlt','TotRmsAbvGrd','SalePrice']]
-'''
+
 print(houses_df.head().dropna())
 print(houses_df.info())
 print(houses_df.describe().transpose())
-'''
+
 houses_df.fillna(0)
 
 #normalizar
@@ -115,7 +113,7 @@ print(houses_df_final.describe().transpose())
 #Analisis de tendencia a agrupamiento
 
 #Metodo Hopkings
-'''
+
 random.seed(200)
 print(pyclustertend.hopkins(houses_df_final, len(houses_df_final)))
 
@@ -137,7 +135,7 @@ plt.title('Grafico de codo')
 plt.xlabel('No. Clusters')
 plt.ylabel('Puntaje')
 plt.show()
-'''
+
 #Kmeans
 clusters=  KMeans(n_clusters=3, max_iter=300) #Creacion del modelo
 clusters.fit(houses_df_final) #Aplicacion del modelo de cluster
@@ -181,7 +179,7 @@ houses_df['Clasificacion'] = houses_df.apply(lambda row: 'Caras' if ((row['Clasi
                                                     else row['Clasificacion'], axis=1)
 # Convertir Clasaficacion a categorica
 houses_df['Clasificacion'] = houses_df.apply(lambda row: 1 if row['Clasificacion'] == 'Economicas' else 2 if row['Clasificacion'] == 'Intermedias' else 3, axis=1)
-'''
+
 # Ver distribucion del precio, condicion general y clasificacion
 houses_df['SalePrice'].hist()
 plt.title('Histograma de precios')
@@ -192,7 +190,7 @@ plt.show()
 houses_df['Clasificacion'].hist()
 plt.title('Histograma de clasificacion')
 plt.show()
-'''
+
 # Division de datos, 70% de entrenamiento y 30% de prueba, manteniendo distribucion de clasificacion
 y = houses_df.pop('Clasificacion')
 x = copy(houses_df)
@@ -215,6 +213,8 @@ y_train.fillna(0)
 
 Dt_model.fit(x_train, y_train)
 
+tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
+plt.show()
 
 # Eficiencia del algoritmo de arbol de clasificacion
 y_pred = Dt_model.predict(x_test)
@@ -235,8 +235,6 @@ print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
 print("Precision:", metrics.precision_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
 print("Recall:", metrics.recall_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
 print("F1:", metrics.f1_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
-
-
 
 # Modelo de arbol de regresión
 y_reg = houses_df.pop('SalePrice')
@@ -261,16 +259,16 @@ y_pred_reg = Dt_model_reg.predict(X = x_test_reg)
 y_pred_train_reg = Dt_model_reg.predict(X = x_train_reg)
 
 rmse = metrics.mean_squared_error(
-        y_true  = y_test_reg,
-        y_pred  = y_pred_reg,
-        squared = False
-       )
+    y_true  = y_test_reg,
+    y_pred  = y_pred_reg,
+    squared = False
+)
 
 rmse_train = metrics.mean_squared_error(
-        y_true  = y_train_reg,
-        y_pred  = y_pred_train_reg,
-        squared = False
-       )
+    y_true  = y_train_reg,
+    y_pred  = y_pred_train_reg,
+    squared = False
+)
 print("-----------------------------------")
 print(f"El error (rmse) de test es: {rmse}")
 print("-----------------------------------")
@@ -283,7 +281,7 @@ plt.figure(figsize=(23, 10))
 tree.plot_tree(Dt_model_reg, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
 plt.show()
 
-#Eficiencia RandomForestClassifier
+# Eficiencia RandomForestClassifier
 Dt_model = RandomForestClassifier(n_estimators=100,
                             max_depth=3,
                             max_features='auto',
@@ -308,7 +306,7 @@ print("Precision:", metrics.precision_score(y_test, y_pred, average='weighted'))
 print("Recall:", metrics.recall_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
 print("F1:", metrics.f1_score(y_test, y_pred, average='weighted')) # macro, micro, weighted
 
-#Eficiencia RandomForestRegressor
+# Eficiencia RandomForestRegressor
 
 x_train_reg, x_test_reg, y_train_reg, y_test_reg = train_test_split(x_reg, y_reg, test_size=0.3, train_size=0.7, random_state=123)
 
