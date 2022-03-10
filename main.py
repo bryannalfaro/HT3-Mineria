@@ -19,7 +19,8 @@ from sklearn import preprocessing, tree
 from sklearn import datasets
 from sklearn import metrics
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from sklearn.metrics import classification_report, multilabel_confusion_matrix, silhouette_score
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics import classification_report, silhouette_score
 from sklearn.metrics import silhouette_samples
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
@@ -210,13 +211,28 @@ plt.show()
 
 # Dt_model.fit(x_train, y_train)
 
+# RandomForestClassifier
+# Dt_model = RandomForestClassifier(n_estimators=100,
+#                             max_depth=3,
+#                             max_features='auto',
+#                             min_samples_leaf=4,
+#                             bootstrap=True,
+#                             n_jobs=-1,
+#                             random_state=0)
+
+# x_train.fillna(0)
+# y_train.fillna(0)
+
+# Dt_model.fit(x_train, y_train)
+
+# y_pred = Dt_model.predict(X = x_test)
+
 # tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
 # plt.show()
 
 # Modelo de arbol de regresión
 y = houses_df.pop('SalePrice')
 x = houses_df
-
 x.pop('MasVnrArea')
 x.pop('GarageYrBlt')
 x.pop('Cluster')
@@ -227,6 +243,14 @@ random.seed(5236)
 x_train, x_test,y_train, y_test = train_test_split(x, y,test_size=0.3,train_size=0.7, random_state=0)
 
 Dt_model = tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=20)
+# RandomForestRegressor
+# Dt_model = RandomForestRegressor(n_estimators = 10,
+#                                 criterion    = 'mse',
+#                                 max_depth    = None,
+#                                 max_features = 'auto',
+#                                 oob_score    = False,
+#                                 n_jobs       = -1,
+#                                 random_state = 123)
 
 x_train.fillna(0)
 y_train.fillna(0)
@@ -234,27 +258,26 @@ y_train.fillna(0)
 Dt_model.fit(x_train, y_train)
 
 y_pred = Dt_model.predict(X = x_test)
+y_pred_train = Dt_model.predict(X = x_train)
 
 rmse = metrics.mean_squared_error(
         y_true  = y_test,
         y_pred  = y_pred,
         squared = False
        )
+
+rmse_train = metrics.mean_squared_error(
+        y_true  = y_train,
+        y_pred  = y_pred_train,
+        squared = False
+       )
 print("-----------------------------------")
 print(f"El error (rmse) de test es: {rmse}")
 print("-----------------------------------")
 
-cm = multilabel_confusion_matrix(y_test, y_pred)
-print('\nClassification Report:')
-print(classification_report(y_test, y_pred))
-
-plt.figure(figsize=(10, 7))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Económicas', 'Intermedias', 'Caras'], yticklabels=['Económicas', 'Intermedias', 'Caras'])
-plt.title('Matriz de Confusion')
-plt.ylabel('Clasificación real')
-plt.xlabel('Clasificación predicha')
-plt.show()
-
+print("-----------------------------------")
+print(f"El error (rmse) de train es: {rmse_train}")
+print("-----------------------------------")
 
 # plt.figure(figsize=(23, 10))
 # tree.plot_tree(Dt_model, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
