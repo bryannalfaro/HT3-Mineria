@@ -192,61 +192,69 @@ plt.title('Histograma de clasificacion')
 plt.show()
 '''
 # Division de datos, 70% de entrenamiento y 30% de prueba, manteniendo distribucion de clasificacion
-# y = houses_df.pop('Clasificacion')
-# x = houses_df
-# x.pop('MasVnrArea')
-# x.pop('GarageYrBlt')
-# x.pop('Cluster') # Se elimina para que al analizar el set de pruebas no se tenga en cuenta
-# dividir = StratifiedShuffleSplit(n_splits=10, train_size=0.7, test_size=0.3, random_state=416)
-# for train_index, test_index in dividir.split(x, y):
-#     x_train, x_test = x.iloc[train_index], x.iloc[test_index]
-#     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-
-# # Modelo de arbol de decision
-# Dt_model = tree.DecisionTreeClassifier(random_state=0)
-
-# x_train.fillna(0)
-# y_train.fillna(0)
-
-# Dt_model.fit(x_train, y_train)
-
-# tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
-# plt.show()
-
-# Modelo de arbol de regresión
-y = houses_df.pop('SalePrice')
+y = houses_df.pop('Clasificacion')
 x = houses_df
-
 x.pop('MasVnrArea')
 x.pop('GarageYrBlt')
-x.pop('Cluster')
-x.pop('Clasificacion') 
+x.pop('Cluster') # Se elimina para que al analizar el set de pruebas no se tenga en cuenta
 
-random.seed(5236)
+random.seed(4315)
 
-x_train, x_test,y_train, y_test = train_test_split(x, y,test_size=0.3,train_size=0.7, random_state=0)
+dividir = StratifiedShuffleSplit(n_splits=10, train_size=0.7, test_size=0.3, random_state=416)
+for train_index, test_index in dividir.split(x, y):
+    x_train, x_test = x.iloc[train_index], x.iloc[test_index]
+    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-Dt_model = tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=20)
+# Modelo de arbol de decision
+Dt_model = tree.DecisionTreeClassifier(random_state=0)
 
 x_train.fillna(0)
 y_train.fillna(0)
 
 Dt_model.fit(x_train, y_train)
 
-y_pred = Dt_model.predict(X = x_test)
+tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
+plt.show()
+
+# Modelo de arbol de regresión
+y_reg = houses_df.pop('SalePrice')
+x_reg = houses_df
+
+x_reg.pop('MasVnrArea')
+x_reg.pop('GarageYrBlt')
+x_reg.pop('Cluster')
+x_reg.pop('Clasificacion') 
+
+random.seed(5236)
+
+x_train_reg, x_test_reg, y_train_reg, y_test_reg = train_test_split(x_reg, y_reg, test_size=0.3, train_size=0.7, random_state=0)
+
+Dt_model_reg = tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=20)
+
+x_train_reg.fillna(0)
+y_train_reg.fillna(0)
+
+Dt_model_reg.fit(x_train_reg, y_train_reg)
+
+plt.figure(figsize=(23, 10))
+tree.plot_tree(Dt_model, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
+plt.show()
+
+# Eficiencia del algoritmo de arbol de clasificacion
+y_pred_reg = Dt_model_reg.predict(X = x_test_reg)
 
 rmse = metrics.mean_squared_error(
-        y_true  = y_test,
-        y_pred  = y_pred,
+        y_true  = y_test_reg,
+        y_pred  = y_pred_reg,
         squared = False
-       )
+)
 print("-----------------------------------")
 print(f"El error (rmse) de test es: {rmse}")
 print("-----------------------------------")
 
-cm = multilabel_confusion_matrix(y_test, y_pred)
+cm = multilabel_confusion_matrix(y_test_reg, y_pred_reg)
 print('\nClassification Report:')
-print(classification_report(y_test, y_pred))
+print(classification_report(y_test_reg, y_pred_reg))
 
 plt.figure(figsize=(10, 7))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Económicas', 'Intermedias', 'Caras'], yticklabels=['Económicas', 'Intermedias', 'Caras'])
@@ -254,11 +262,6 @@ plt.title('Matriz de Confusion')
 plt.ylabel('Clasificación real')
 plt.xlabel('Clasificación predicha')
 plt.show()
-
-
-# plt.figure(figsize=(23, 10))
-# tree.plot_tree(Dt_model, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
-# plt.show()
 
 # Cargando el set de entrenamiento para problema 9
 houses_test = pd.read_csv('train.csv', encoding='latin1', engine='python')
