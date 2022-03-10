@@ -19,7 +19,7 @@ from sklearn import preprocessing, tree
 from sklearn import datasets
 from sklearn import metrics
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from sklearn.metrics import classification_report, silhouette_score
+from sklearn.metrics import classification_report, multilabel_confusion_matrix, silhouette_score
 from sklearn.metrics import silhouette_samples
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
@@ -192,57 +192,68 @@ plt.title('Histograma de clasificacion')
 plt.show()
 '''
 # Division de datos, 70% de entrenamiento y 30% de prueba, manteniendo distribucion de clasificacion
-y = houses_df.pop('Clasificacion')
-x = houses_df
-x.pop('MasVnrArea')
-x.pop('GarageYrBlt')
-x.pop('Cluster') # Se elimina para que al analizar el set de pruebas no se tenga en cuenta
-dividir = StratifiedShuffleSplit(n_splits=10, train_size=0.7, test_size=0.3, random_state=416)
-for train_index, test_index in dividir.split(x, y):
-    x_train, x_test = x.iloc[train_index], x.iloc[test_index]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-
-# Modelo de arbol de decision
-Dt_model = tree.DecisionTreeClassifier(random_state=0)
-
-x_train.fillna(0)
-y_train.fillna(0)
-
-Dt_model.fit(x_train, y_train)
-
-tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
-plt.show()
-
-# Modelo de arbol de regresión
-# y = houses_df.pop('SalePrice')
+# y = houses_df.pop('Clasificacion')
 # x = houses_df
-
 # x.pop('MasVnrArea')
 # x.pop('GarageYrBlt')
-# x.pop('Cluster')
-# x.pop('Clasificacion') 
+# x.pop('Cluster') # Se elimina para que al analizar el set de pruebas no se tenga en cuenta
+# dividir = StratifiedShuffleSplit(n_splits=10, train_size=0.7, test_size=0.3, random_state=416)
+# for train_index, test_index in dividir.split(x, y):
+#     x_train, x_test = x.iloc[train_index], x.iloc[test_index]
+#     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-# random.seed(5236)
-
-# x_train, x_test,y_train, y_test = train_test_split(x, y,test_size=0.3,train_size=0.7, random_state=0)
-
-# Dt_model = tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=20)
+# # Modelo de arbol de decision
+# Dt_model = tree.DecisionTreeClassifier(random_state=0)
 
 # x_train.fillna(0)
 # y_train.fillna(0)
 
 # Dt_model.fit(x_train, y_train)
 
-# y_pred = Dt_model.predict(X = x_test)
+# tree.plot_tree(Dt_model, feature_names=houses_df.columns, class_names=['Económicas', 'Intermedias', 'Caras'], filled=True, rounded=True)
+# plt.show()
 
-# rmse = metrics.mean_squared_error(
-#         y_true  = y_test,
-#         y_pred  = y_pred,
-#         squared = False
-#        )
-# print("-----------------------------------")
-# print(f"El error (rmse) de test es: {rmse}")
-# print("-----------------------------------")
+# Modelo de arbol de regresión
+y = houses_df.pop('SalePrice')
+x = houses_df
+
+x.pop('MasVnrArea')
+x.pop('GarageYrBlt')
+x.pop('Cluster')
+x.pop('Clasificacion') 
+
+random.seed(5236)
+
+x_train, x_test,y_train, y_test = train_test_split(x, y,test_size=0.3,train_size=0.7, random_state=0)
+
+Dt_model = tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=20)
+
+x_train.fillna(0)
+y_train.fillna(0)
+
+Dt_model.fit(x_train, y_train)
+
+y_pred = Dt_model.predict(X = x_test)
+
+rmse = metrics.mean_squared_error(
+        y_true  = y_test,
+        y_pred  = y_pred,
+        squared = False
+       )
+print("-----------------------------------")
+print(f"El error (rmse) de test es: {rmse}")
+print("-----------------------------------")
+
+cm = multilabel_confusion_matrix(y_test, y_pred)
+print('\nClassification Report:')
+print(classification_report(y_test, y_pred))
+
+plt.figure(figsize=(10, 7))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Económicas', 'Intermedias', 'Caras'], yticklabels=['Económicas', 'Intermedias', 'Caras'])
+plt.title('Matriz de Confusion')
+plt.ylabel('Clasificación real')
+plt.xlabel('Clasificación predicha')
+plt.show()
 
 
 # plt.figure(figsize=(23, 10))
