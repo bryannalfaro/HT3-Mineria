@@ -237,7 +237,7 @@ y_train_reg.fillna(0)
 Dt_model_reg.fit(x_train_reg, y_train_reg)
 
 plt.figure(figsize=(23, 10))
-tree.plot_tree(Dt_model, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
+tree.plot_tree(Dt_model_reg, feature_names=houses_df.columns, fontsize=7, filled=True, rounded=True)
 plt.show()
 
 # Eficiencia del algoritmo de arbol de clasificacion
