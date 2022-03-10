@@ -283,6 +283,8 @@ print("-----------------------------------")
 print(f"El error (rmse) de test es: {rmse}")
 print("-----------------------------------")
 
+# Matriz de confusion para el arbol de regresion
+
 cm = multilabel_confusion_matrix(y_test_reg, y_pred_reg)
 print('\nClassification Report:')
 print(classification_report(y_test_reg, y_pred_reg))
